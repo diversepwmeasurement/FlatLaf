@@ -1,62 +1,52 @@
-# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
-# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
-
-name: Fonts
-
-on:
-    push:
-        branches:
-            - '*'
-        tags:
-            - 'fonts/*-[0-9]*'
-        paths:
-            - 'flatlaf-fonts/**'
-            - '.github/workflows/fonts.yml'
-            - 'gradle/wrapper/gradle-wrapper.properties'
-            - '!**.md'
-            - '!**/.settings/**'
-
 jobs:
-    Fonts:
-        strategy:
-            matrix:
-                font:
-                    - inter
-                    - jetbrains-mono
-                    - roboto
-                    - roboto-mono
+  Fonts:
+    if: 'github.event_name == ''push'' &&
 
-        runs-on: ubuntu-latest
-        if: |
-            github.event_name == 'push' &&
-            github.repository == 'JFormDesigner/FlatLaf'
+      github.repository == ''JFormDesigner/FlatLaf''
 
-        steps:
-            - uses: actions/checkout@v4
-
-            - name: Setup Java 11
-              uses: actions/setup-java@v4
-              with:
-                  java-version: 11
-                  distribution: temurin  # pre-installed on ubuntu-latest
-                  cache: gradle
-
-            - name: Build with Gradle
-              run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:build
-              if: startsWith( github.ref, format( 'refs/tags/fonts/{0}-', matrix.font ) ) != true
-
-            - name: Publish snapshot to oss.sonatype.org
-              run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:publish -Dorg.gradle.internal.publish.checksums.insecure=true
-              env:
-                  OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                  OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-              if: github.ref == 'refs/heads/main' || startsWith( github.ref, 'refs/heads/develop-' )
-
-            - name: Release a new stable version to Maven Central
-              run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:build :flatlaf-fonts-${{ matrix.font }}:publish -Prelease
-              env:
-                  OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-                  OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-                  SIGNING_KEY:      ${{ secrets.SIGNING_KEY }}
-                  SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-              if: startsWith( github.ref, format( 'refs/tags/fonts/{0}-', matrix.font ) )
+      '
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Setup Java 11
+      uses: actions/setup-java@v4
+      with:
+        cache: gradle
+        distribution: temurin
+        java-version: 11
+    - continue-on-error: true
+      if: startsWith( github.ref, format( 'refs/tags/fonts/{0}-', matrix.font ) )
+        != true
+      name: Build with Gradle
+      run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:build
+    - continue-on-error: true
+      env:
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      if: github.ref == 'refs/heads/main' || startsWith( github.ref, 'refs/heads/develop-'
+        )
+      name: Publish snapshot to oss.sonatype.org
+      run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:publish -Dorg.gradle.internal.publish.checksums.insecure=true
+    - continue-on-error: true
+      env:
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      if: startsWith( github.ref, format( 'refs/tags/fonts/{0}-', matrix.font ) )
+      name: Release a new stable version to Maven Central
+      run: ./gradlew :flatlaf-fonts-${{ matrix.font }}:build :flatlaf-fonts-${{ matrix.font
+        }}:publish -Prelease
+    strategy:
+      matrix:
+        font:
+        - inter
+        - jetbrains-mono
+        - roboto
+        - roboto-mono
+name: Fonts
+on:
+  repository_dispatch:
+    types: trigger-ga___fonts.yml
